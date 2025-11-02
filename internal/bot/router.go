@@ -47,9 +47,23 @@ func (r *Router) Dispatch(b *Bot, chatID int64, text string) {
 	case strings.HasPrefix(text, "/pm positions "):
 		addr := strings.TrimSpace(strings.TrimPrefix(text, "/pm positions "))
 		b.handlePMPositions(chatID, addr)
+	case text == "/pm positions":
+		b.handlePMPositions(chatID, "")
 	case strings.HasPrefix(text, "/pm value "):
 		addr := strings.TrimSpace(strings.TrimPrefix(text, "/pm value "))
-		b.handlePMPositions(chatID, addr)
+		b.handlePMValue(chatID, addr)
+	case text == "/pm value":
+		b.handlePMValue(chatID, "")
+	case strings.HasPrefix(text, "/setwallet "):
+		wallet := strings.TrimSpace(strings.TrimPrefix(text, "/setwallet"))
+		b.HandleSetWallet(chatID, wallet)
+	case strings.HasPrefix(text, "/user "):
+		addr := strings.TrimSpace(strings.TrimPrefix(text, "/user"))
+		b.handleUserProfile(chatID, addr)
+
+	case text == "/user":
+		b.handleUserProfile(chatID, "")
+
 	default:
 		b.Send(chatID, "Unknown command")
 	}

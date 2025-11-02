@@ -48,11 +48,21 @@ func (s *Storage) init() error {
 		UNIQUE(chat_id, market_id)
 	);`
 
+	defaultUserWallet := `
+		CREATE TABLE IF NOT EXISTS user_wallet_default (
+		chat_id INTEGER PRIMARY KEY,
+		wallet  TEXT NOT NULL
+	);`
+
 	if _, err := s.db.Exec(walletsQuery); err != nil {
 		return err
 	}
 
 	if _, err := s.db.Exec(marketsQuery); err != nil {
+		return err
+	}
+
+	if _, err := s.db.Exec(defaultUserWallet); err != nil {
 		return err
 	}
 
@@ -209,4 +219,26 @@ func (s *Storage) GetAllMarkets() (map[int64][]string, error) {
 
 func (s *Storage) Close() error {
 	return s.db.Close()
+}
+
+func (s *Storage) SetDefaultWallet(chatID int64, wallet string) error {
+	_, err := s.db.Exec(`
+		INSERT INTO user_wallet_default (chat_id, wallet)
+		VALUES (?, ?)
+		ON CONFLICT(chat_id) DO UPDATE SET wallet = excluded.wallet
+	`, chatID, wallet)
+	return err
+}
+
+func (s *Storage) GetDefaultWallet(chatID int64) (string, error) {
+	row := s.db.QueryRow(`SELECT wallet FROM user_wallet_default WHERE chat_id = ?`, chatID)
+	var w string
+	err := row.Scan(&w)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return w, nil
 }

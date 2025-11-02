@@ -53,3 +53,14 @@ func (b *Bot) registerHandlers() {
 	// This method exists for future extensibility
 }
 
+func (b *Bot) HandleSetWallet(chatID int64, wallet string) {
+	if wallet == "" {
+		b.Send(chatID, "Укажи адрес: /setwallet 0x123...")
+		return
+	}
+	if err := b.store.SetDefaultWallet(chatID, wallet); err != nil {
+		b.Send(chatID, "Ошибка: "+err.Error())
+		return
+	}
+	b.Send(chatID, "✅ Запомнил твой кошелёк: "+wallet)
+}

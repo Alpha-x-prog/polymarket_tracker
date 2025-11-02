@@ -10,13 +10,22 @@ import (
 )
 
 // сколько позиций показываем за раз
-const positionsPerPage = 4
+const positionsPerPage = 5
 
 // /pm positions <0x...>
 func (b *Bot) handlePMPositions(chatID int64, addr string) {
 	if addr == "" {
-		b.Send(chatID, "Usage: /pm positions <0xUserAddress>")
-		return
+		// пытаемся взять из БД
+		saved, err := b.store.GetDefaultWallet(chatID)
+		if err != nil {
+			b.Send(chatID, "Ошибка чтения кошелька: "+err.Error())
+			return
+		}
+		if saved == "" {
+			b.Send(chatID, "У тебя не сохранён кошелёк. Сделай: /setwallet 0x....")
+			return
+		}
+		addr = saved
 	}
 
 	ctx := context.Background()
@@ -38,6 +47,33 @@ func (b *Bot) handlePMPositions(chatID int64, addr string) {
 
 	// показали первую страницу
 	b.sendPositionsPage(chatID, addr, 0)
+}
+
+func (b *Bot) handlePMValue(chatID int64, addr string) {
+	// 1. если адрес не передали в команду – пробуем взять из БД
+	if addr == "" {
+		saved, err := b.store.GetDefaultWallet(chatID)
+		if err != nil {
+			b.Send(chatID, "Ошибка чтения кошелька: "+err.Error())
+			return
+		}
+		if saved == "" {
+			b.Send(chatID, "Кошелёк не задан. Сначала сделай: /setwallet 0x...")
+			return
+		}
+		addr = saved
+	}
+
+	// 2. запрашиваем у Polymarket total value
+	ctx := context.Background()
+	value, err := b.pm.GetUserTotalValue(ctx, addr)
+	if err != nil {
+		b.Send(chatID, "Не смог получить value у Polymarket: "+err.Error())
+		return
+	}
+
+	// 3. красиво выводим
+	b.Send(chatID, fmt.Sprintf("💰 Total value for %s: %.2f USD", addr, value))
 }
 
 func (b *Bot) sendPositionsPage(chatID int64, addr string, page int) {

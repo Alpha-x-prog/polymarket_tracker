@@ -19,40 +19,45 @@ type Outcome struct {
 	Price float64 `json:"price"`
 }
 
+// ===== activity =====
+
 type Activity struct {
 	ID          string  `json:"id"`
-	User        string  `json:"user"`        // может быть proxyWallet
-	Type        string  `json:"type"`        // TRADE / MERGE / REDEEM / SPLIT / REWARD ...
-	MarketTitle string  `json:"marketTitle"` // часто так
-	Title       string  `json:"title"`       // иногда так
+	User        string  `json:"user"`
+	Type        string  `json:"type"`
+	MarketTitle string  `json:"marketTitle"`
+	Title       string  `json:"title"`
 	Slug        string  `json:"slug"`
 	ConditionID string  `json:"conditionId"`
-	Side        string  `json:"side"`    // BUY / SELL
-	Size        float64 `json:"sizeUsd"` // бывает sizeUsd / usdAmount
+	Side        string  `json:"side"`
+	SizeUSD     float64 `json:"sizeUsd"`
+	USDValue    float64 `json:"usdAmount"`
 	CreatedAt   string  `json:"createdAt"`
 }
+
+// ===== open positions =====
 
 type UserPosition struct {
 	ProxyWallet        string  `json:"proxyWallet"`
 	Asset              string  `json:"asset"`
 	ConditionID        string  `json:"conditionId"`
-	Size               float64 `json:"size"`               // сколько у пользователя штук
-	AvgPrice           float64 `json:"avgPrice"`           // средняя цена покупки
-	InitialValue       float64 `json:"initialValue"`       // сколько стоило при покупке
-	CurrentValue       float64 `json:"currentValue"`       // сколько стоит сейчас в $
-	CashPnL            float64 `json:"cashPnl"`            // прибыль/убыток в $
-	PercentPnL         float64 `json:"percentPnl"`         // прибыль/убыток в %
-	TotalBought        float64 `json:"totalBought"`        // всего куплено на $
-	RealizedPnL        float64 `json:"realizedPnl"`        // уже зафиксированная прибыль
-	PercentRealizedPnL float64 `json:"percentRealizedPnl"` // %
-	CurPrice           float64 `json:"curPrice"`           // 🔥 текущая цена этого исхода
+	Size               float64 `json:"size"`
+	AvgPrice           float64 `json:"avgPrice"`
+	InitialValue       float64 `json:"initialValue"`
+	CurrentValue       float64 `json:"currentValue"`
+	CashPnL            float64 `json:"cashPnl"`
+	PercentPnL         float64 `json:"percentPnl"`
+	TotalBought        float64 `json:"totalBought"`
+	RealizedPnL        float64 `json:"realizedPnl"`
+	PercentRealizedPnL float64 `json:"percentRealizedPnl"`
+	CurPrice           float64 `json:"curPrice"`
 	Redeemable         bool    `json:"redeemable"`
 	Mergeable          bool    `json:"mergeable"`
-	Title              string  `json:"title"` // человеческое имя маркета
+	Title              string  `json:"title"`
 	Slug               string  `json:"slug"`
 	Icon               string  `json:"icon"`
 	EventSlug          string  `json:"eventSlug"`
-	Outcome            string  `json:"outcome"` // "Yes" / "No" / другой вариант
+	Outcome            string  `json:"outcome"`
 	OutcomeIndex       int     `json:"outcomeIndex"`
 	OppositeOutcome    string  `json:"oppositeOutcome"`
 	OppositeAsset      string  `json:"oppositeAsset"`
@@ -60,8 +65,31 @@ type UserPosition struct {
 	NegativeRisk       bool    `json:"negativeRisk"`
 }
 
-// ответ для /value
+// ===== closed positions (добавили) =====
+
+type ClosedPosition struct {
+	User               string  `json:"user"`
+	ConditionID        string  `json:"conditionId"`
+	Title              string  `json:"title"`
+	Slug               string  `json:"slug"`
+	Outcome            string  `json:"outcome"`
+	Size               float64 `json:"size"`
+	AvgPrice           float64 `json:"avgPrice"`
+	RealizedPnL        float64 `json:"realizedPnl"`
+	PercentRealizedPnL float64 `json:"percentRealizedPnl"`
+	ClosedAt           string  `json:"closedAt"`
+}
+
+// ===== /value =====
+
 type UserValue struct {
 	User  string  `json:"user"`
 	Value float64 `json:"value"`
+}
+
+// ===== /traded =====
+
+type UserTraded struct {
+	User   string `json:"user"`
+	Traded int    `json:"traded"`
 }

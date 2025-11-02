@@ -82,20 +82,6 @@ func (c *Client) doDataAPIJSON(ctx context.Context, path string, out any) error 
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
-// GET https://data-api.polymarket.com/activity?user=0x...&limit=20
-func (c *Client) GetUserActivity(ctx context.Context, addr string, limit int) ([]Activity, error) {
-	if limit <= 0 {
-		limit = 10
-	}
-	path := fmt.Sprintf("/activity?user=%s&limit=%d", addr, limit)
-
-	var acts []Activity
-	if err := c.doJSONData(ctx, path, &acts); err != nil {
-		return nil, err
-	}
-	return acts, nil
-}
-
 // GetUserLastActivity — берём только ОДНО самое свежее действие
 func (c *Client) GetUserLastActivity(ctx context.Context, addr string) (*Activity, error) {
 	acts, err := c.GetUserActivity(ctx, addr, 1)
@@ -144,6 +130,7 @@ func (c *Client) GetMarketByID(ctx context.Context, id string) (*Market, error) 
 	return &resp.Markets[0], nil
 }
 
+// 1) открытые позиции
 func (c *Client) GetUserPositions(ctx context.Context, addr string) ([]UserPosition, error) {
 	var positions []UserPosition
 	if err := c.doJSONData(ctx, "/positions?user="+addr, &positions); err != nil {
@@ -152,15 +139,49 @@ func (c *Client) GetUserPositions(ctx context.Context, addr string) ([]UserPosit
 	return positions, nil
 }
 
-// GetUserTotalValue запрашивает "Get total value of a user's positions"
+// 2) закрытые позиции
+func (c *Client) GetUserClosedPositions(ctx context.Context, addr string, limit int) ([]ClosedPosition, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	var closed []ClosedPosition
+	path := fmt.Sprintf("/closed-positions?user=%s&limit=%d", addr, limit)
+	if err := c.doJSONData(ctx, path, &closed); err != nil {
+		return nil, err
+	}
+	return closed, nil
+}
+
+// 3) total value
 func (c *Client) GetUserTotalValue(ctx context.Context, addr string) (float64, error) {
 	var resp []UserValue
-	path := "/value?user=" + addr
-	if err := c.doJSONData(ctx, path, &resp); err != nil {
+	if err := c.doJSONData(ctx, "/value?user="+addr, &resp); err != nil {
 		return 0, err
 	}
 	if len(resp) == 0 {
 		return 0, nil
 	}
 	return resp[0].Value, nil
+}
+
+// 4) активность
+func (c *Client) GetUserActivity(ctx context.Context, addr string, limit int) ([]Activity, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	var acts []Activity
+	path := fmt.Sprintf("/activity?user=%s&limit=%d", addr, limit)
+	if err := c.doJSONData(ctx, path, &acts); err != nil {
+		return nil, err
+	}
+	return acts, nil
+}
+
+// 5) сколько рынков трогал
+func (c *Client) GetUserTraded(ctx context.Context, addr string) (int, error) {
+	var res UserTraded
+	if err := c.doJSONData(ctx, "/traded?user="+addr, &res); err != nil {
+		return 0, err
+	}
+	return res.Traded, nil
 }
