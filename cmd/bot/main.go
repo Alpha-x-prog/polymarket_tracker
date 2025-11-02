@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"polymarket_tg_bot/internal/bot"
+	"polymarket_tg_bot/internal/storage"
 
 	"github.com/joho/godotenv"
 )
@@ -20,7 +21,14 @@ func mustEnv(key string) string {
 
 func main() {
 	token := mustEnv("TG_BOT_TOKEN")
-	b, err := bot.New(token)
+
+	st, err := storage.New("polymarket_bot.db")
+	if err != nil {
+		log.Fatalf("init storage: %v", err)
+	}
+	defer st.Close()
+
+	b, err := bot.New(token, st)
 	if err != nil {
 		log.Fatalf("init bot: %v", err)
 	}
