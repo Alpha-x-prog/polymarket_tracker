@@ -1,26 +1,40 @@
+// internal/bot/markets.go
 package bot
 
 import (
 	"context"
 	"fmt"
+	"polymarket_tg_bot/internal/polymarket"
 	"time"
 )
 
-func (b *Bot) HandleWatchMarketQuery(chatID int64, query string) {
+// internal/bot/markets.go
+func (b *Bot) HandleTrackMarketQuery(chatID int64, query string) {
 	if query == "" {
-		b.Send(chatID, "Usage: /watch-market <name or slug>")
+		b.Send(chatID, "Usage: /track-market <name or slug>")
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// если пришёл slug — сразу точный фетч
+	if polymarket.LooksLikeSlug(query) { // сделай экспортируемым, если хочешь; либо скопируй логику сюда
+		m, err := b.pm.GetMarketBySlug(ctx, query)
+		if err != nil || m == nil {
+			b.Send(chatID, "Not found by slug. Try text search.")
+			return
+		}
+		b.Send(chatID, fmt.Sprintf("Found market:\n%s\nid: %s\n\nUse: /track-market-id %s", m.Question, m.ID, m.ID))
+		return
+	}
+
+	// иначе текстовый поиск через /public-search
 	markets, err := b.pm.SearchMarkets(ctx, query, 5)
 	if err != nil {
 		b.Send(chatID, fmt.Sprintf("❌ Error searching markets: %v", err))
 		return
 	}
-
 	if len(markets) == 0 {
 		b.Send(chatID, "No markets found")
 		return
@@ -28,24 +42,22 @@ func (b *Bot) HandleWatchMarketQuery(chatID int64, query string) {
 
 	msg := "Found markets:\n\n"
 	for i, m := range markets {
-		msg += fmt.Sprintf("%d) %s", i+1, m.Question)
+		line := fmt.Sprintf("%d) %s", i+1, m.Question)
 		if m.Category != "" {
-			msg += fmt.Sprintf(" [%s]", m.Category)
+			line += fmt.Sprintf(" [%s]", m.Category)
 		}
-		msg += fmt.Sprintf("\n   id: %s\n\n", m.ID)
+		msg += line + fmt.Sprintf("\n   id: %s\n\n", m.ID)
 	}
-	msg += "Send: /watch-market-id <id>"
-
+	msg += "Send: /track-market-id <id>"
 	b.Send(chatID, msg)
 }
 
-func (b *Bot) HandleWatchMarketID(chatID int64, marketID string) {
+func (b *Bot) HandleTrackMarketID(chatID int64, marketID string) {
 	if marketID == "" {
-		b.Send(chatID, "Usage: /watch-market-id <market_id>")
+		b.Send(chatID, "Usage: /track-market-id <market_id>")
 		return
 	}
 
-	// Optional: fetch and validate market exists
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -54,13 +66,11 @@ func (b *Bot) HandleWatchMarketID(chatID int64, marketID string) {
 		b.Send(chatID, fmt.Sprintf("❌ Error fetching market: %v", err))
 		return
 	}
-
 	if market == nil {
 		b.Send(chatID, fmt.Sprintf("❌ Market with ID %s not found", marketID))
 		return
 	}
 
-	// Add to storage
 	if err := b.store.AddMarket(chatID, marketID); err != nil {
 		b.Send(chatID, fmt.Sprintf("❌ Error: %v", err))
 		return
@@ -87,4 +97,3 @@ func (b *Bot) HandleMarketsList(chatID int64) {
 	}
 	b.Send(chatID, msg)
 }
-
