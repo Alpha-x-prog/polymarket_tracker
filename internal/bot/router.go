@@ -41,8 +41,15 @@ func (r *Router) Dispatch(b *Bot, chatID int64, text string) {
 		q := strings.TrimSpace(strings.TrimPrefix(text, "/track-market"))
 		b.HandleTrackMarketQuery(chatID, q)
 
-	case text == "/track-market":
-		b.Send(chatID, "Usage: /track-market <name or slug>")
+	case text == "/track-markets":
+		b.HandleTrackedMarkets(chatID)
+
+	case strings.HasPrefix(text, "/market "):
+		id := strings.TrimSpace(strings.TrimPrefix(text, "/market"))
+		b.HandleMarketInfo(chatID, id)
+
+	case text == "/market":
+		b.Send(chatID, "Usage: /market <condition_id>")
 
 	case strings.HasPrefix(text, "/track-market-id "):
 		id := strings.TrimSpace(strings.TrimPrefix(text, "/track-market-id"))
@@ -50,6 +57,13 @@ func (r *Router) Dispatch(b *Bot, chatID int64, text string) {
 
 	case text == "/track-market-id":
 		b.Send(chatID, "Usage: /track-market-id <market_id>")
+	case strings.HasPrefix(text, "/untrack-market-id "):
+		id := strings.TrimSpace(strings.TrimPrefix(text, "/untrack-market-id"))
+		if err := b.store.RemoveMarket(chatID, id); err != nil {
+			b.Send(chatID, "❌ "+err.Error())
+		} else {
+			b.Send(chatID, "🗑 Removed: "+id)
+		}
 
 	case strings.HasPrefix(text, "/pm positions "):
 		addr := strings.TrimSpace(strings.TrimPrefix(text, "/pm positions "))

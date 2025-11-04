@@ -5,11 +5,30 @@ import (
 )
 
 func (b *Bot) handleStart(chatID int64) {
-	msg := "👋 Welcome to Polymarket Wallet Tracker!\n\n" +
-		"Commands:\n" +
-		"/track <wallet> - Subscribe to a wallet address\n" +
-		"/track-list - List your subscribed wallets\n" +
-		"/track-remove <wallet> - Unsubscribe from a wallet"
+	msg :=
+		"👋 Welcome to Polymarket Wallet Tracker!\n\n" +
+
+			"🧭 Wallet tracking\n" +
+			"• /track <wallet> - subscribe to a wallet address\n" +
+			"• /track-list - list your subscribed wallets\n" +
+			"• /track-remove <wallet> - unsubscribe from a wallet\n\n" +
+
+			"📈 Market tracking\n" +
+			"• /track-market <text|slug> - search markets and pick one\n" +
+			"• /track-market-id <condition_id> - track a market by ID\n" +
+			"• /track-markets - show your tracked markets\n" +
+			"• /untrack-market-id <condition_id> - stop tracking a market\n" +
+			"• /market <condition_id> - show market info\n\n" +
+
+			"👤 Portfolio & profile\n" +
+			"• /setwallet <wallet> - save your default wallet\n" +
+			"• /positions - show positions for your saved wallet\n" +
+			"• /positions <wallet> - show positions for a specific wallet\n" +
+			"• /value - total value for your saved wallet\n" +
+			"• /value <wallet> - total value for a specific wallet\n" +
+			"• /user - full profile for your saved wallet\n" +
+			"• /user <wallet> - full profile for a specific wallet\n"
+
 	b.Send(chatID, msg)
 }
 
