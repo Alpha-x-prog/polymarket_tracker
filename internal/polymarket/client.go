@@ -98,8 +98,10 @@ func (c *Client) GetUserLastActivity(ctx context.Context, addr string) (*Activit
 // SearchMarkets searches markets by text (slug, question, part of name)
 // 1) точечный фетч по slug
 func (c *Client) GetMarketBySlug(ctx context.Context, slug string) (*Market, error) {
-	path := "/markets/slug/" + url.PathEscape(slug)
 	var m Market
+
+	path := "/markets/slug/" + url.PathEscape(slug) // ВАЖНО: /markets/slug/...
+
 	if err := c.doJSON(ctx, path, &m); err != nil {
 		return nil, err
 	}
@@ -113,48 +115,10 @@ type publicSearchResp struct {
 	} `json:"events"`
 }
 
-func (c *Client) SearchMarkets(ctx context.Context, query string, limit int) ([]Market, error) {
-	if limit <= 0 {
-		limit = 5
-	}
-	q := url.QueryEscape(query)
-	path := fmt.Sprintf("/public-search?q=%s&events_status=active&search_profiles=false&limit_per_type=%d", q, limit)
-
-	var ps publicSearchResp
-	if err := c.doJSON(ctx, path, &ps); err != nil {
-		return nil, err
-	}
-
-	var out []Market
-	for _, ev := range ps.Events {
-		out = append(out, ev.Markets...)
-	}
-	return out, nil
-}
-
 // хелпер: отличить slug от свободного текста
 func LooksLikeSlug(s string) bool {
 	s = strings.TrimSpace(s)
 	return s != "" && !strings.Contains(s, " ") && strings.Contains(s, "-")
-}
-
-// GetMarketByID gets a market by condition ID
-func (c *Client) GetMarketByID(ctx context.Context, conditionID string) (*Market, error) {
-	id := strings.ToLower(strings.TrimSpace(conditionID))
-	if id == "" {
-		return nil, nil
-	}
-	// см. Gamma: /markets?condition_ids=<id>
-	path := fmt.Sprintf("/markets?condition_ids=%s&limit=1", url.QueryEscape(id))
-
-	var arr []Market
-	if err := c.doJSON(ctx, path, &arr); err != nil {
-		return nil, err
-	}
-	if len(arr) == 0 {
-		return nil, nil
-	}
-	return &arr[0], nil
 }
 
 // 1) открытые позиции
@@ -211,4 +175,29 @@ func (c *Client) GetUserTraded(ctx context.Context, addr string) (int, error) {
 		return 0, err
 	}
 	return res.Traded, nil
+}
+
+// если у тебя уже есть Client и doJSON — просто добавь эту функцию
+
+func (c *Client) GetMarketByID(ctx context.Context, id string) (*Market, error) {
+	var m Market
+	if err := c.doJSON(ctx, "/markets/"+url.PathEscape(id), &m); err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (c *Client) SearchMarkets(ctx context.Context, text string, limit int) ([]Market, error) {
+	if limit <= 0 || limit > 25 {
+		limit = 5
+	}
+	q := url.Values{}
+	q.Set("limit", fmt.Sprint(limit))
+	q.Set("text", text)
+
+	var resp MarketsResponse
+	if err := c.doJSON(ctx, "/markets?"+q.Encode(), &resp); err != nil {
+		return nil, err
+	}
+	return resp.Markets, nil
 }

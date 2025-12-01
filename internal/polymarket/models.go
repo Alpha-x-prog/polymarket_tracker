@@ -3,6 +3,8 @@ package polymarket
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // type MarketsResponse struct {
@@ -127,6 +129,48 @@ func (fo *FlexibleOutcomes) UnmarshalJSON(b []byte) error {
 	return fmt.Errorf("unknown outcomes format: %s", string(b))
 }
 
+type FlexiblePrices []float64
+
+func (fp *FlexiblePrices) UnmarshalJSON(b []byte) error {
+	// 1) []float64
+	var f []float64
+	if err := json.Unmarshal(b, &f); err == nil {
+		*fp = f
+		return nil
+	}
+	// 2) []string
+	var ss []string
+	if err := json.Unmarshal(b, &ss); err == nil {
+		out := make([]float64, 0, len(ss))
+		for _, s := range ss {
+			if x, err := strconv.ParseFloat(strings.TrimSpace(s), 64); err == nil {
+				out = append(out, x)
+			}
+		}
+		*fp = out
+		return nil
+	}
+	// 3) "0.63,0.37" (одна строка)
+	var one string
+	if err := json.Unmarshal(b, &one); err == nil {
+		parts := strings.Split(one, ",")
+		out := make([]float64, 0, len(parts))
+		for _, p := range parts {
+			if x, err := strconv.ParseFloat(strings.TrimSpace(p), 64); err == nil {
+				out = append(out, x)
+			}
+		}
+		*fp = out
+		return nil
+	}
+	// 4) null
+	if string(b) == "null" {
+		*fp = nil
+		return nil
+	}
+	return fmt.Errorf("unknown outcomePrices format: %s", string(b))
+}
+
 // Удобный хелпер: вернуть только имена исходов
 func (fo FlexibleOutcomes) Names() []string {
 	if len(fo) == 0 {
@@ -145,15 +189,33 @@ type MarketsResponse struct {
 	Markets []Market `json:"markets"`
 }
 
-type Market struct {
-	ID       string           `json:"conditionId"`
-	Question string           `json:"question"`
-	Slug     string           `json:"slug"`
-	Category string           `json:"category"`
-	Volume24 float64          `json:"volume24h"`
-	OI       float64          `json:"openInterest"`
-	Outcomes FlexibleOutcomes `json:"outcomes"` // <-- заменили тип
+type MarketCategory struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Slug  string `json:"slug"`
 }
 
-// Остальные структуры (Activity, UserPosition, UserValue, ClosedPosition, UserTraded)
-// оставь как у тебя уже есть.
+type Market struct {
+	ID          string `json:"id"`
+	ConditionID string `json:"conditionId"`
+
+	Question string `json:"question"`
+	Slug     string `json:"slug"`
+
+	Category   string           `json:"category"`
+	Categories []MarketCategory `json:"categories"`
+
+	VolumeNum    float64 `json:"volumeNum"`
+	Volume24hr   float64 `json:"volume24hr"`
+	LiquidityNum float64 `json:"liquidityNum"`
+
+	Spread  float64 `json:"spread"`
+	BestBid float64 `json:"bestBid"`
+	BestAsk float64 `json:"bestAsk"`
+
+	Description      string `json:"description"`
+	ResolutionSource string `json:"resolutionSource"`
+
+	Outcomes      FlexibleOutcomes `json:"outcomes"`
+	OutcomePrices FlexiblePrices   `json:"outcomePrices"`
+}

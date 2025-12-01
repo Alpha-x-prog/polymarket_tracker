@@ -1,4 +1,3 @@
-// internal/bot/market_info.go
 package bot
 
 import (
@@ -8,47 +7,76 @@ import (
 	"time"
 )
 
-func (b *Bot) HandleMarketInfo(chatID int64, id string) {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		b.Send(chatID, "Usage: /market <condition_id>")
-		return
-	}
-
+func (b *Bot) HandleMarketInfo(chatID int64, arg string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 
-	m, err := b.pm.GetMarketByID(ctx, id)
-	if err != nil {
-		b.Send(chatID, "❌ Error fetching market: "+err.Error())
+	slug := strings.TrimSpace(arg)
+	if slug == "" {
+		b.Send(chatID, "Usage: /market <slug>")
 		return
 	}
-	if m == nil {
+
+	m, err := b.pm.GetMarketBySlug(ctx, slug)
+	if err != nil || m == nil {
 		b.Send(chatID, "❌ Market not found")
 		return
 	}
-
-	// исходы (если есть)
-	outcomes := m.Outcomes.Names()
-	outStr := "n/a"
-	if len(outcomes) > 0 {
-		if len(outcomes) > 4 { // чтобы не раздувать сообщение
-			outcomes = outcomes[:4]
-		}
-		outStr = strings.Join(outcomes, " | ")
+	// выбираем категорию
+	cat := m.Category
+	if cat == "" && len(m.Categories) > 0 && m.Categories[0].Label != "" {
+		cat = m.Categories[0].Label
+	}
+	if cat == "" {
+		cat = "—"
 	}
 
-	text := fmt.Sprintf(
-		"🧾 Market info\n\n"+
-			"Title: %s\n"+
-			"ID: %s\n"+
-			"Slug: %s\n"+
+	desc := strings.TrimSpace(m.Description)
+	if desc == "" {
+		desc = "No description"
+	} else if len(desc) > 400 {
+		desc = desc[:397] + "..."
+	}
+
+	res := strings.TrimSpace(m.ResolutionSource)
+
+	spread := m.Spread
+	if spread == 0 && m.BestBid > 0 && m.BestAsk > 0 {
+		spread = m.BestAsk - m.BestBid
+	}
+
+	var resLine string
+	if res != "" {
+		resLine = fmt.Sprintf("Resolution: %s\n", res)
+	}
+
+	msg := fmt.Sprintf(
+		"📌 %s\n"+
 			"Category: %s\n"+
-			"Outcomes: %s\n"+
-			"24h Volume: $%.2f\n"+
-			"Open Interest: $%.2f\n",
-		m.Question, m.ID, m.Slug, m.Category, outStr, m.Volume24, m.OI,
+			"Slug: %s\n"+
+			"ID: %s\n"+
+			"24h Volume: %.2f USDC\n"+
+			"Total Volume: %.2f USDC\n"+
+			"Liquidity: %.2f USDC\n"+
+			"Spread: %.4f (bid %.4f / ask %.4f)\n"+
+			"%s"+
+			"\n%s\n\n"+
+			"https://polymarket.com/event/%s",
+		m.Question,
+		cat,
+		m.Slug,
+		m.ID,
+		m.Volume24hr,
+		m.VolumeNum,
+		m.LiquidityNum,
+		spread,
+		m.BestBid,
+		m.BestAsk,
+		resLine,
+		desc,
+		m.Slug,
 	)
 
-	b.Send(chatID, text)
+	b.Send(chatID, msg)
+
 }

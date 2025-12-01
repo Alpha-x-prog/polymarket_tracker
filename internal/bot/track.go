@@ -16,7 +16,6 @@ func (b *Bot) handleStart(chatID int64) {
 			"📈 Market tracking\n" +
 			"• /track-market <text|slug> - search markets and pick one\n" +
 			"• /track-market-id <condition_id> - track a market by ID\n" +
-			"• /track-markets - show your tracked markets\n" +
 			"• /untrack-market-id <condition_id> - stop tracking a market\n" +
 			"• /market <condition_id> - show market info\n\n" +
 

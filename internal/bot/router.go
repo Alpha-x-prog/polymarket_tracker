@@ -20,6 +20,7 @@ func (r *Router) Dispatch(b *Bot, chatID int64, text string) {
 	switch {
 	case text == "/start":
 		b.handleStart(chatID)
+
 	case strings.HasPrefix(text, "/track "):
 		wallet := strings.TrimSpace(strings.TrimPrefix(text, "/track"))
 		if wallet == "" {
@@ -27,8 +28,10 @@ func (r *Router) Dispatch(b *Bot, chatID int64, text string) {
 			return
 		}
 		b.handleTrack(chatID, wallet)
+
 	case text == "/track-list":
 		b.handleTrackList(chatID)
+
 	case strings.HasPrefix(text, "/track-remove "):
 		wallet := strings.TrimSpace(strings.TrimPrefix(text, "/track-remove"))
 		if wallet == "" {
@@ -54,7 +57,6 @@ func (r *Router) Dispatch(b *Bot, chatID int64, text string) {
 	case strings.HasPrefix(text, "/track-market-id "):
 		id := strings.TrimSpace(strings.TrimPrefix(text, "/track-market-id"))
 		b.HandleTrackMarketID(chatID, id)
-
 	case text == "/track-market-id":
 		b.Send(chatID, "Usage: /track-market-id <market_id>")
 	case strings.HasPrefix(text, "/untrack-market-id "):
